@@ -22,6 +22,81 @@ class MockApiClient {
     }),
   };
 
+  private generateProgressData(days: number, startRate: number, improvement: number) {
+    return Array.from({ length: days }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (days - i - 1));
+      const baseRate = startRate - (improvement * (i / days));
+      const variation = Math.sin(i) * 0.3;
+      return {
+        date: date.toISOString(),
+        disfluencyRate: Math.max(baseRate + variation, 2),
+      };
+    });
+  }
+
+  private mockEnhancedAnalytics: EnhancedUserAnalytics = {
+    totalRecordings: 15,
+    totalDuration: 4500,
+    averageDisfluencyRate: 5.2,
+    mostCommonDisfluency: 'repetition' as DisfluencyType,
+    progressOverTime: this.generateProgressData(30, 12, 7),
+    weeklyImprovement: 15.3,
+    streak: {
+      current: 5,
+      longest: 12,
+      lastRecordingDate: new Date().toISOString()
+    },
+    goals: [
+      {
+        id: '1',
+        type: 'disfluency_rate',
+        target: 4,
+        current: 5.2,
+        deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ],
+    phonemeProgress: [
+      { phoneme: 's', errorRate: 12.5, totalOccurrences: 245, improvement: 25.3 },
+      { phoneme: 'r', errorRate: 10.2, totalOccurrences: 189, improvement: 18.7 },
+      { phoneme: 'th', errorRate: 8.7, totalOccurrences: 156, improvement: 15.2 },
+      { phoneme: 'l', errorRate: 6.4, totalOccurrences: 203, improvement: 22.1 },
+      { phoneme: 'f', errorRate: 5.1, totalOccurrences: 167, improvement: 28.4 }
+    ],
+    environmentInsights: [
+      {
+        type: 'noise',
+        impact: -15.3,
+        recommendation: 'Performance decreases in noisy environments. Try practicing in quieter settings.'
+      },
+      {
+        type: 'time_of_day',
+        impact: 12.8,
+        recommendation: 'You perform best in the morning. Consider scheduling important conversations before noon.'
+      },
+      {
+        type: 'duration',
+        impact: -8.5,
+        recommendation: 'Longer sessions (>10 minutes) show increased disfluency rates. Try shorter, focused practice sessions.'
+      }
+    ],
+    timeOfDayPerformance: Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      averageRate: 5 + Math.sin(i * Math.PI / 12) * 2,
+      totalRecordings: Math.floor(10 + Math.sin(i * Math.PI / 12) * 5)
+    }))
+  };
+  
+  async getUserAnalytics(userId: string): Promise<ApiResponse<EnhancedUserAnalytics>> {
+    await delay(800);
+    return {
+      data: this.mockEnhancedAnalytics,
+      error: null
+    };
+  }
+
+
   private mockRecordings: AudioRecording[] = Array.from({ length: 5 }, (_, i) => ({
     id: `recording-${i + 1}`,
     userId: 'mock-user',

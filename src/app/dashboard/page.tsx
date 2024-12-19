@@ -4,21 +4,21 @@
 import { useEffect, useState } from 'react';
 import { useUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MetricsCard } from "@/components/dashboard/metrics-card";
-import { RecentUploads } from "@/components/dashboard/recent-uploads";
-import { AnalyticsChart } from "@/components/dashboard/analytics-chart";
+import { EnhancedAnalyticsChart } from "@/components/dashboard/enhanced-analytics-chart";
+import { ProgressSummary } from "@/components/dashboard/progress-summary";
+import { PhonemeAnalysisCard } from "@/components/dashboard/phoneme-analysis";
+import { EnvironmentInsights } from "@/components/dashboard/environment-insights";
 import { apiClient } from "@/lib/api-config";
-import { UserAnalytics } from "@/types/analytics";
-import { AudioRecording } from "@/types/upload";
+import { EnhancedUserAnalytics, TimeRange } from "@/types/analytics";
 
 export default function DashboardPage() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
-  const [recordings, setRecordings] = useState<AudioRecording[]>([]);
+  const [analytics, setAnalytics] = useState<EnhancedUserAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('week');
+  const [showBenchmark, setShowBenchmark] = useState(false);
   
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -28,13 +28,8 @@ export default function DashboardPage() {
         setIsLoading(true);
         setError(null);
         
-        const [analyticsResponse, recordingsResponse] = await Promise.all([
-          apiClient.getUserAnalytics(user.id),
-          apiClient.getRecordings(user.id)
-        ]);
-
-        setAnalytics(analyticsResponse.data);
-        setRecordings(recordingsResponse.data);
+        const response = await apiClient.getUserAnalytics(user.id);
+        setAnalytics(response.data as EnhancedUserAnalytics);
       } catch (err) {
         setError('Failed to load dashboard data. Please try again later.');
         console.error('Dashboard data fetch error:', err);
@@ -66,43 +61,73 @@ export default function DashboardPage() {
     );
   }
 
+  const renderSkeleton = () => (
+    <div className="space-y-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
+        ))}
+      </div>
+      <div className="h-[400px] bg-muted rounded-lg animate-pulse" />
+      <div className="grid gap-8 md:grid-cols-2">
+        <div className="h-96 bg-muted rounded-lg animate-pulse" />
+        <div className="h-96 bg-muted rounded-lg animate-pulse" />
+      </div>
+    </div>
+  );
+
+  if (isLoading || !analytics) {
+    return (
+      <div className="container mx-auto p-8 space-y-8">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        {renderSkeleton()}
+      </div>
+    );
+  }
+
+  const filteredData = analytics.progressOverTime.filter(point => {
+    const date = new Date(point.date);
+    const now = new Date();
+    switch (timeRange) {
+      case 'week':
+        return date >= new Date(now.setDate(now.getDate() - 7));
+      case 'month':
+        return date >= new Date(now.setMonth(now.getMonth() - 1));
+      default:
+        return true;
+    }
+  });
+
+  const chartData = filteredData.map(point => ({
+    ...point,
+    benchmark: showBenchmark ? point.disfluencyRate * 1.2 : undefined,
+  }));
+
   return (
     <div className="container mx-auto p-8 space-y-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MetricsCard 
-          title="Total Recordings"
-          value={analytics?.totalRecordings.toString() ?? '-'}
-          description="Audio files analyzed"
-          isLoading={isLoading}
-        />
-        <MetricsCard 
-          title="Total Duration"
-          value={analytics ? `${Math.round(analytics.totalDuration / 60)} min` : '-'}
-          description="Total recording time"
-          isLoading={isLoading}
-        />
-        <MetricsCard 
-          title="Average Disfluency Rate"
-          value={analytics ? `${analytics.averageDisfluencyRate.toFixed(1)}/min` : '-'}
-          description="Disfluencies per minute"
-          isLoading={isLoading}
-        />
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
       </div>
 
-      {analytics && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Progress Over Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AnalyticsChart data={analytics.progressOverTime} />
-          </CardContent>
-        </Card>
-      )}
+      <ProgressSummary
+        weeklyImprovement={analytics.weeklyImprovement}
+        streak={analytics.streak}
+        totalRecordings={analytics.totalRecordings}
+        averageRate={analytics.averageDisfluencyRate}
+      />
 
-      <RecentUploads recordings={recordings} isLoading={isLoading} />
+      <EnhancedAnalyticsChart
+        data={chartData}
+        onTimeRangeChange={setTimeRange}
+        timeRange={timeRange}
+        showBenchmark={showBenchmark}
+        onToggleBenchmark={() => setShowBenchmark(!showBenchmark)}
+      />
+
+      <div className="grid gap-8 md:grid-cols-2">
+        <PhonemeAnalysisCard phonemes={analytics.phonemeProgress} />
+        <EnvironmentInsights factors={analytics.environmentInsights} />
+      </div>
     </div>
   );
 }
