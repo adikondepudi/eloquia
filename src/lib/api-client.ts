@@ -93,7 +93,15 @@ class ApiClient {
 
   // Recording endpoints
   async getRecordings(userId: string): Promise<PaginatedResponse<AudioRecording[]>> {
-    return this.fetch(`/recordings/${userId}`);
+    return {
+      ...(await this.fetch(`/recordings/${userId}`)),
+      meta: {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: 10,
+      }
+    };
   }
 
   // Upload endpoints

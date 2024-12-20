@@ -1,25 +1,54 @@
 import { ApiResponse, PaginatedResponse } from '@/types/api';
-import { AudioAnalysis, UserAnalytics, DisfluencyType } from '@/types/analytics';
+import { AudioAnalysis, UserAnalytics, DisfluencyType, EnhancedUserAnalytics } from '@/types/analytics';
 import { AudioRecording, UploadProgress } from '@/types/upload';
 
 // Helper to simulate API delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 class MockApiClient {
-  private mockUserAnalytics: UserAnalytics = {
+  private mockUserAnalytics: EnhancedUserAnalytics = {
     totalRecordings: 15,
-    totalDuration: 4500, // 75 minutes
-    averageDisfluencyRate: 5.2, // Lower average to reflect improvement
+    totalDuration: 4500,
+    averageDisfluencyRate: 5.2,
     mostCommonDisfluency: 'repetition' as DisfluencyType,
     progressOverTime: Array.from({ length: 10 }, (_, i) => {
-      // Start at higher rate and gradually improve
-      const baseRate = 12 - (i * 0.8); // Steeper improvement
-      const variation = Math.sin(i) * 0.3; // Subtle natural variation
+      const baseRate = 12 - (i * 0.8);
+      const variation = Math.sin(i) * 0.3;
       return {
         date: new Date(Date.now() - (9 - i) * 24 * 60 * 60 * 1000).toISOString(),
-        disfluencyRate: Math.max(baseRate + variation, 3), // Ensure rate doesn't go below 3
+        disfluencyRate: Math.max(baseRate + variation, 3),
       };
     }),
+    weeklyImprovement: 15.3,
+    streak: {
+      current: 5,
+      longest: 12,
+      lastRecordingDate: new Date().toISOString()
+    },
+    phonemeProgress: [
+      { phoneme: 's', errorRate: 12.5, totalOccurrences: 245, improvement: 25.3 },
+      { phoneme: 'r', errorRate: 10.2, totalOccurrences: 189, improvement: 18.7 },
+      { phoneme: 'th', errorRate: 8.7, totalOccurrences: 156, improvement: 15.2 },
+      { phoneme: 'l', errorRate: 6.4, totalOccurrences: 203, improvement: 22.1 },
+      { phoneme: 'f', errorRate: 5.1, totalOccurrences: 167, improvement: 28.4 }
+    ],
+    environmentInsights: [
+      {
+        type: 'noise',
+        impact: -15.3,
+        recommendation: 'Performance decreases in noisy environments. Try practicing in quieter settings.'
+      },
+      {
+        type: 'time_of_day',
+        impact: 12.8,
+        recommendation: 'You perform best in the morning. Consider scheduling important conversations before noon.'
+      },
+      {
+        type: 'duration',
+        impact: -8.5,
+        recommendation: 'Longer sessions (>10 minutes) show increased disfluency rates. Try shorter, focused practice sessions.'
+      }
+    ],
   };
 
   private generateProgressData(days: number, startRate: number, improvement: number) {
@@ -87,7 +116,7 @@ class MockApiClient {
       totalRecordings: Math.floor(10 + Math.sin(i * Math.PI / 12) * 5)
     }))
   };
-  
+
   async getUserAnalytics(userId: string): Promise<ApiResponse<EnhancedUserAnalytics>> {
     await delay(800);
     return {
@@ -108,14 +137,6 @@ class MockApiClient {
     createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
     status: 'ready',
   }));
-
-  async getUserAnalytics(userId: string): Promise<ApiResponse<UserAnalytics>> {
-    await delay(800);
-    return {
-      data: this.mockUserAnalytics,
-      error: null,
-    };
-  }
 
   async getRecordings(userId: string): Promise<PaginatedResponse<AudioRecording[]>> {
     await delay(600);

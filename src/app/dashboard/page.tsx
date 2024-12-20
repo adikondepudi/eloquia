@@ -103,6 +103,8 @@ export default function DashboardPage() {
     benchmark: showBenchmark ? point.disfluencyRate * 1.2 : undefined,
   }));
 
+  console.log("Analytics data:", analytics);
+
   return (
     <div className="container mx-auto p-8 space-y-8">
       <div className="flex items-center justify-between">

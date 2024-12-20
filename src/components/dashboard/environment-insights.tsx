@@ -1,10 +1,26 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnvironmentFactor } from '@/types/analytics';
 
 interface EnvironmentInsightsProps {
-  factors: EnvironmentFactor[];
+  factors?: EnvironmentFactor[];
 }
 
-export const EnvironmentInsights = ({ factors }: EnvironmentInsightsProps) => {
+export const EnvironmentInsights = ({ factors = [] }: EnvironmentInsightsProps) => {
+  if (!factors || factors.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Environment Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground py-4">
+            No environment insights available yet
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

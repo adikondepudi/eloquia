@@ -2,7 +2,7 @@
 import { apiClient as productionApiClient } from './api-client';
 import { mockApiClient } from './mock-api';
 
-// Use mock API when running locally or when real API is not available
-export const apiClient = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' 
+// Force use mock API in development
+export const apiClient = process.env.NODE_ENV === 'development' 
   ? mockApiClient 
   : productionApiClient;

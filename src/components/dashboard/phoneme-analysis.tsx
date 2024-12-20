@@ -1,3 +1,5 @@
+// /components/dashboard/phoneme-analysis.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PhonemeAnalysis } from '@/types/analytics';
 
 interface PhonemeAnalysisCardProps {
@@ -5,7 +7,8 @@ interface PhonemeAnalysisCardProps {
 }
 
 export const PhonemeAnalysisCard = ({ phonemes }: PhonemeAnalysisCardProps) => {
-  const sortedPhonemes = [...phonemes].sort((a, b) => b.errorRate - a.errorRate);
+  // Add null check before sorting
+  const sortedPhonemes = phonemes ? [...phonemes].sort((a, b) => b.errorRate - a.errorRate) : [];
 
   return (
     <Card>
@@ -35,6 +38,11 @@ export const PhonemeAnalysisCard = ({ phonemes }: PhonemeAnalysisCardProps) => {
               </p>
             </div>
           ))}
+          {sortedPhonemes.length === 0 && (
+            <p className="text-center text-muted-foreground py-4">
+              No phoneme analysis data available yet
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

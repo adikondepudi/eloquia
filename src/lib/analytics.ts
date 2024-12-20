@@ -1,5 +1,6 @@
 // /lib/analytics.ts
-import { DisfluencyInstance, AudioAnalysis } from '@/types/analytics';
+import { DisfluencyInstance, AudioAnalysis, UserAnalytics } from '@/types/analytics';
+
 
 export const calculateDisfluencyRate = (
   disfluencies: DisfluencyInstance[],
@@ -32,8 +33,6 @@ export const calculateProgress = (
 
   return ((previousRate - currentRate) / previousRate) * 100;  
 };
-
-// /types/analytics.ts
 
 export type DisfluencyType = 
   | 'repetition'
