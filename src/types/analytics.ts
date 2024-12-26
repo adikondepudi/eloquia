@@ -82,6 +82,21 @@ export interface EnhancedUserAnalytics extends UserAnalytics {
   goals?: UserGoal[];
   phonemeProgress: PhonemeAnalysis[];
   environmentInsights: EnvironmentFactor[];
+  disfluencyPatterns: {
+    hour: number;
+    weekday: number;
+    value: number;
+  }[];
+  speechMetrics: {
+    category: string;
+    score: number;
+    change: number;
+    details: {
+      label: string;
+      value: number;
+    }[];
+  }[];
+  weeklyHighlights?: string[];
   timeOfDayPerformance?: {
     hour: number;
     averageRate: number;
