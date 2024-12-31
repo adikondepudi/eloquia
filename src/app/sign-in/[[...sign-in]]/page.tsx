@@ -1,20 +1,20 @@
 'use client';
 
-import { SignIn } from "@clerk/nextjs";
 import { useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
-  useEffect(() => {
-    // Force a hard reload if we detect a chunk loading error
-    const handleChunkError = (event: ErrorEvent) => {
-      if (event.error?.toString().includes('ChunkLoadError')) {
-        window.location.reload();
-      }
-    };
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const userType = searchParams.get('userType');
 
-    window.addEventListener('error', handleChunkError);
-    return () => window.removeEventListener('error', handleChunkError);
-  }, []);
+  useEffect(() => {
+    // Store the user type in localStorage when signing in
+    if (userType) {
+      localStorage.setItem('userType', userType);
+    }
+  }, [userType]);
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -27,6 +27,8 @@ export default function SignInPage() {
         }}
         routing="path"
         path="/sign-in"
+        redirectUrl={userType === 'therapist' ? '/therapist/dashboard' : '/dashboard'}
+        afterSignInUrl={userType === 'therapist' ? '/therapist/dashboard' : '/dashboard'}
       />
     </div>
   );
