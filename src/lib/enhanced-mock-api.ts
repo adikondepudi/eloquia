@@ -1,6 +1,7 @@
 // /src/lib/enhanced-mock-api.ts
 import { format, subDays, addDays } from 'date-fns';
 import { ApiResponse, PaginatedResponse } from '@/types/api';
+import { SessionNote, CreateSessionNoteInput } from '@/types/session-notes';
 
 // Enhanced interfaces for detailed client data
 interface ClientProfile {
@@ -208,6 +209,7 @@ const mockClients: ClientProfile[] = Array.from({ length: 10 }, (_, index) => ({
 
 class EnhancedMockApiClient {
   private clients: ClientProfile[] = mockClients;
+
   private goals: Map<string, TherapyGoal[]> = new Map(
     mockClients.map(client => [client.id, generateMockGoals(client.id)])
   );
@@ -252,6 +254,35 @@ class EnhancedMockApiClient {
     await new Promise(resolve => setTimeout(resolve, 200));
     return {
       data: this.goals.get(clientId) || [],
+      error: null
+    };
+  }
+
+  private sessionNotes: Map<string, SessionNote[]> = new Map();
+
+  async getClientNotes(clientId: string): Promise<ApiResponse<SessionNote[]>> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return {
+      data: this.sessionNotes.get(clientId) || [],
+      error: null
+    };
+  }
+
+  async addSessionNote(note: CreateSessionNoteInput): Promise<ApiResponse<SessionNote>> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const newNote: SessionNote = {
+      ...note,
+      id: `note_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const clientNotes = this.sessionNotes.get(note.clientId) || [];
+    this.sessionNotes.set(note.clientId, [newNote, ...clientNotes]);
+
+    return {
+      data: newNote,
       error: null
     };
   }

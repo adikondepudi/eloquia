@@ -12,6 +12,8 @@ import { ClientGoalsSection } from '@/components/client/client-goals-section';
 import { ClientRecordingsSection } from '@/components/client/client-recordings-section';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SessionNotesSection } from '@/components/client/session-notes-section';
+import { SessionNote } from '@/types/session-notes';
 
 export default function ClientDetailPage() {
   const { clientId } = useParams();
@@ -20,6 +22,7 @@ export default function ClientDetailPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -32,7 +35,8 @@ export default function ClientDetailPage() {
         const [clientResponse, goalsResponse, recordingsResponse] = await Promise.all([
           enhancedMockApiClient.getClientProfile(clientId),
           enhancedMockApiClient.getClientGoals(clientId),
-          enhancedMockApiClient.getClientRecordings(clientId)
+          enhancedMockApiClient.getClientRecordings(clientId),
+          enhancedMockApiClient.getClientNotes(clientId)
         ]);
 
         if (clientResponse.error) {
@@ -42,6 +46,7 @@ export default function ClientDetailPage() {
         setClient(clientResponse.data);
         setGoals(goalsResponse.data);
         setRecordings(recordingsResponse.data);
+        setSessionNotes(notesResponse.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load client data');
         console.error('Error fetching client data:', err);
@@ -94,6 +99,7 @@ export default function ClientDetailPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="recordings">Recordings</TabsTrigger>
+          <TabsTrigger value="notes">Session Notes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -137,6 +143,20 @@ export default function ClientDetailPage() {
                   setRecordings(response.data);
                 }
               });
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="notes" className="space-y-6">
+          <SessionNotesSection
+            clientId={clientId as string}
+            therapistId="th_1"
+            notes={sessionNotes}
+            onNoteCreate={async (note) => {
+              const response = await enhancedMockApiClient.addSessionNote(note);
+              if (!response.error) {
+                setSessionNotes([response.data, ...sessionNotes]);
+              }
             }}
           />
         </TabsContent>
