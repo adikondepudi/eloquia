@@ -32,7 +32,7 @@ export default function ClientDetailPage() {
         setIsLoading(true);
         setError(null);
 
-        const [clientResponse, goalsResponse, recordingsResponse] = await Promise.all([
+        const [clientResponse, goalsResponse, recordingsResponse, notesResponse] = await Promise.all([
           enhancedMockApiClient.getClientProfile(clientId),
           enhancedMockApiClient.getClientGoals(clientId),
           enhancedMockApiClient.getClientRecordings(clientId),
