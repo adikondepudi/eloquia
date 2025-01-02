@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { redirect } from "next/navigation";
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,6 +35,7 @@ const fadeIn = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { isLoaded, isSignedIn, user } = useUser();
   const [analytics, setAnalytics] = useState<EnhancedUserAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +43,14 @@ export default function DashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [showBenchmark, setShowBenchmark] = useState(false);
   const [previousStreak, setPreviousStreak] = useState(0);
-  
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/');
+      return;
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user?.id) return;
@@ -53,7 +62,6 @@ export default function DashboardPage() {
         const response = await apiClient.getUserAnalytics(user.id);
         const newData = response.data as EnhancedUserAnalytics;
         
-        // Check if streak has increased
         if (analytics && newData.streak.current > previousStreak) {
           triggerConfetti();
         }
@@ -70,28 +78,21 @@ export default function DashboardPage() {
 
     if (user?.id) {
       fetchDashboardData();
-      // Refresh data every 5 minutes
       const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
       return () => clearInterval(interval);
     }
   }, [user?.id, analytics, previousStreak]);
-  
+
   if (!isLoaded) {
     return (
-      <motion.div 
-        className="p-8"
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={fadeIn}
-      >
-        Loading...
-      </motion.div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
     );
   }
-  
+
   if (!isSignedIn) {
-    redirect("/sign-in");
+    return null;
   }
 
   if (error) {
