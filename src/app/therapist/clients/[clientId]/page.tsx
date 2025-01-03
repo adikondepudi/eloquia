@@ -1,8 +1,9 @@
-// /src/app/therapist/clients/[clientId]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { ClientProfile, TherapyGoal, Recording } from '@/types/enhanced-client';
 import { enhancedMockApiClient } from '@/lib/enhanced-mock-api';
@@ -16,7 +17,11 @@ import { SessionNotesSection } from '@/components/client/session-notes-section';
 import { SessionNote } from '@/types/session-notes';
 
 export default function ClientDetailPage() {
-  const { clientId } = useParams();
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+  const params = useParams();
+  const clientId = params.clientId as string;
+  
   const [client, setClient] = useState<ClientProfile | null>(null);
   const [goals, setGoals] = useState<TherapyGoal[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -25,8 +30,15 @@ export default function ClientDetailPage() {
   const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
 
   useEffect(() => {
-    const fetchClientData = async () => {
-      if (!clientId || typeof clientId !== 'string') return;
+    if (isLoaded && !isSignedIn) {
+      router.replace('/sign-in');
+      return;
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  useEffect(() => {
+    async function fetchClientData() {
+      if (!clientId || !isSignedIn) return;
 
       try {
         setIsLoading(true);
@@ -39,36 +51,36 @@ export default function ClientDetailPage() {
           enhancedMockApiClient.getClientNotes(clientId)
         ]);
 
-        if (clientResponse.error) {
-          throw new Error(clientResponse.error.message);
+        if (clientResponse.error || !clientResponse.data) {
+          throw new Error(clientResponse.error?.message || 'Failed to load client data');
         }
 
         setClient(clientResponse.data);
-        setGoals(goalsResponse.data);
-        setRecordings(recordingsResponse.data);
-        setSessionNotes(notesResponse.data);
+        setGoals(goalsResponse.data || []);
+        setRecordings(recordingsResponse.data || []);
+        setSessionNotes(notesResponse.data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load client data');
         console.error('Error fetching client data:', err);
       } finally {
         setIsLoading(false);
       }
-    };
+    }
 
-    fetchClientData();
-  }, [clientId]);
+    if (isSignedIn) {
+      fetchClientData();
+    }
+  }, [clientId, isSignedIn]);
 
-  if (error) {
+  if (!isLoaded || !isSignedIn) {
     return (
-      <div className="container mx-auto p-8">
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
-  if (isLoading || !client) {
+  if (isLoading) {
     return (
       <div className="container mx-auto p-8 space-y-8">
         <div className="space-y-4">
@@ -79,6 +91,16 @@ export default function ClientDetailPage() {
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
+      </div>
+    );
+  }
+
+  if (error || !client) {
+    return (
+      <div className="container mx-auto p-8">
+        <Alert variant="destructive">
+          <AlertDescription>{error || 'Client not found'}</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -106,7 +128,6 @@ export default function ClientDetailPage() {
           <ClientProfileSection 
             client={client}
             onUpdate={async (updates) => {
-              // Handle profile updates
               console.log('Updating profile:', updates);
             }}
           />
@@ -116,7 +137,6 @@ export default function ClientDetailPage() {
           <ClientGoalsSection
             goals={goals}
             onAddGoal={async (goal) => {
-              if (!clientId || typeof clientId !== 'string') return;
               const response = await enhancedMockApiClient.addClientGoal(clientId, goal);
               if (!response.error) {
                 setGoals([...goals, response.data]);
@@ -135,9 +155,7 @@ export default function ClientDetailPage() {
           <ClientRecordingsSection
             clientId={client.id}
             recordings={recordings}
-            onRecordingUpdate={(recordingId) => {
-              // Refresh recordings after update
-              if (!clientId || typeof clientId !== 'string') return;
+            onRecordingUpdate={() => {
               enhancedMockApiClient.getClientRecordings(clientId).then(response => {
                 if (!response.error) {
                   setRecordings(response.data);
@@ -149,7 +167,7 @@ export default function ClientDetailPage() {
 
         <TabsContent value="notes" className="space-y-6">
           <SessionNotesSection
-            clientId={clientId as string}
+            clientId={clientId}
             therapistId="th_1"
             notes={sessionNotes}
             onNoteCreate={async (note) => {
